@@ -3,7 +3,11 @@ import base64
 import sys
 
 def test_connection():
-    """Test koneksi ke API"""
+    """
+    Fungsi untuk mengecek koneksi ke API
+    Returns:
+        bool: True jika API berjalan, False jika gagal
+    """
     try:
         response = requests.get('http://localhost:5000/')
         if response.status_code == 200:
@@ -17,6 +21,13 @@ def test_connection():
         return False
 
 def test_steganography():
+    """
+    Fungsi utama untuk testing fitur steganografi
+    Melakukan:
+    1. Test koneksi ke API
+    2. Encode pesan ke dalam gambar
+    3. Decode pesan dari gambar hasil
+    """
     # Test koneksi terlebih dahulu
     if not test_connection():
         sys.exit(1)

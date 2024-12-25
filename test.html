@@ -53,7 +53,7 @@
     <script>
         let lastEncodedImage = null;
 
-        // Fungsi enkripsi XOR
+        // Fungsi enkripsi menggunakan XOR
         function encryptMessage(message, key) {
             let encrypted = '';
             for(let i = 0; i < message.length; i++) {
@@ -65,17 +65,19 @@
             return encrypted;
         }
 
-        // Fungsi dekripsi XOR (sama dengan enkripsi karena XOR)
+        // Fungsi dekripsi (inverse dari enkripsi XOR)
         function decryptMessage(encrypted, key) {
             return encryptMessage(encrypted, key); // XOR dua kali mengembalikan pesan asli
         }
 
+        // Konversi string ke binary
         function stringToBinary(str) {
             return str.split('').map(char => 
                 char.charCodeAt(0).toString(2).padStart(8, '0')
             ).join('');
         }
 
+        // Konversi binary ke string
         function binaryToString(binary) {
             let str = '';
             for (let i = 0; i < binary.length; i += 8) {
@@ -87,6 +89,7 @@
             return str;
         }
 
+        // Fungsi untuk menyembunyikan pesan dalam gambar
         async function encodeImage() {
             const file = document.getElementById('imageInput').files[0];
             const message = document.getElementById('messageInput').value;
@@ -142,6 +145,7 @@
             img.src = URL.createObjectURL(file);
         }
 
+        // Fungsi untuk mengekstrak pesan dari gambar
         async function decodeImage() {
             const file = document.getElementById('decodeImageInput').files[0];
             const key = document.getElementById('decodeKeyInput').value;
@@ -193,6 +197,7 @@
             img.src = URL.createObjectURL(file);
         }
 
+        // Fungsi untuk mengunduh gambar hasil
         function downloadImage() {
             if (!lastEncodedImage) return;
             

@@ -2,6 +2,13 @@ import requests
 import base64
 
 def test_api():
+    """
+    Fungsi sederhana untuk testing API
+    Melakukan:
+    1. Test endpoint root
+    2. Test encode dengan gambar upi.jpg
+    3. Test decode dari hasil encode
+    """
     # URL API
     base_url = "http://localhost:5000"
     
