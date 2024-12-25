@@ -43,3 +43,74 @@ Aplikasi ini menggunakan teknik LSB, dimana pesan disembunyikan dengan memodifik
 3. Deteksi marker '$$' untuk menentukan akhir pesan
 
 ## Instalasi
+
+bash
+Clone repository
+git clone https://github.com/username/image-steganography.git
+cd image-steganography
+Install dependencies
+pip install -r requirements.txt
+
+
+## Penggunaan
+
+### Menggunakan API
+
+1. Jalankan server Flask:
+
+
+bash
+python api.py
+
+
+2. Gunakan endpoint API:
+- `GET /` - Cek status API
+- `GET /docs` - Lihat dokumentasi API
+- `POST /encode` - Sembunyikan pesan dalam gambar
+- `POST /decode` - Ekstrak pesan dari gambar
+
+### Menggunakan Web Interface
+
+1. Buka file `test.html` di browser
+2. Upload gambar
+3. Masukkan pesan
+4. Klik tombol Encode/Decode
+
+### Menggunakan Python Script
+
+
+python
+import requests
+import base64
+Baca gambar
+with open("gambar.jpg", "rb") as image_file:
+image_base64 = base64.b64encode(image_file.read()).decode()
+Encode pesan
+response = requests.post("http://localhost:5000/encode",
+json={
+"image": image_base64,
+"message": "Pesan rahasia"
+})  
+
+## Struktur Proyek
+
+image-steganography/
+├── api.py # Server Flask dan endpoint API
+├── imgstegno.py # Implementasi fungsi steganografi
+├── test_simple.py # Script testing API
+├── test.html # Antarmuka web
+└── requirements.txt # Dependencies
+
+## Batasan
+
+- Ukuran pesan yang dapat disembunyikan tergantung pada resolusi gambar
+- Hanya mendukung gambar format PNG untuk output
+- Perubahan pada gambar hasil (seperti kompresi) dapat merusak pesan tersembunyi
+
+## Kontribusi
+
+Kontribusi selalu diterima. Untuk perubahan besar, silakan buka issue terlebih dahulu untuk mendiskusikan perubahan yang diinginkan.
+
+## Lisensi
+
+[MIT License](LICENSE)
