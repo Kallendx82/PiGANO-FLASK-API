@@ -5,7 +5,7 @@ from imgstegno import encode_image_api, decode_image_api
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all domains
 
-# API Documentation
+# API Documentation - Dokumentasi struktur dan endpoint API
 API_DOCS = {
     "info": {
         "title": "Steganography API",
@@ -89,14 +89,22 @@ API_DOCS = {
 
 @app.route('/', methods=['GET'])
 def home():
+    """Endpoint untuk mengecek apakah API berjalan"""
     return jsonify({"status": "success"})
 
 @app.route('/docs', methods=['GET'])
 def get_docs():
+    """Endpoint untuk menampilkan dokumentasi API"""
     return jsonify(API_DOCS)
 
 @app.route('/encode', methods=['POST'])
 def encode():
+    """
+    Endpoint untuk menyembunyikan pesan dalam gambar
+    Menerima: 
+    - image: base64 string dari gambar
+    - message: pesan yang akan disembunyikan
+    """
     # Terima request dari client
     data = request.get_json()
     
@@ -111,7 +119,11 @@ def encode():
 
 @app.route('/decode', methods=['POST'])
 def decode():
-    """Endpoint untuk mengekstrak pesan dari gambar"""
+    """
+    Endpoint untuk mengekstrak pesan dari gambar
+    Menerima:
+    - image: base64 string dari gambar yang berisi pesan
+    """
     try:
         data = request.get_json()
         if not data or 'image' not in data:
