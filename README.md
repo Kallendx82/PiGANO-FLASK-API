@@ -1,7 +1,6 @@
 # SteganoFlaskver
 Stegano for Kejarkom 
 
-
 # Image Steganography with LSB Method
 
 Aplikasi steganografi gambar yang menggunakan metode LSB (Least Significant Bit) untuk menyembunyikan pesan dalam gambar digital. Proyek ini menyediakan baik API (menggunakan Flask) maupun antarmuka web sederhana.
@@ -17,10 +16,10 @@ Aplikasi steganografi gambar yang menggunakan metode LSB (Least Significant Bit)
 
 ## Teknologi yang Digunakan
 
-- Python 3.x
+- Python 3.10.6
 - Flask (Web Framework)
 - Pillow (Image Processing)
-- HTML5 Canvas (Web Interface)
+- HTML5 Canvas (Web Interface) #optional
 - Base64 Encoding/Decoding
 
 ## Cara Kerja
