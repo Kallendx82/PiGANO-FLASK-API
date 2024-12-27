@@ -1,51 +1,100 @@
 from PIL import Image
-import base64
-import io
 
-def encode_image_api(image_data, message, output_filename):
-    """
-    Fungsi untuk menyembunyikan pesan dalam gambar
+def create_shifted_substitution(key):
+    """Membuat kamus substitusi yang digeser berdasarkan key."""
+    original_substitution = {
+        'A': 'Batu', 'B': 'Lebah', 'C': 'Kaca', 'D': 'Lada', 'E': 'Lelah', 'F': 'Info',
+        'G': 'Laga', 'H': 'Bahu', 'I': 'Diri', 'J': 'Baja', 'K': 'Luka', 'L': 'Pulau',
+        'M': 'Lama', 'N': 'Dunia', 'O': 'Solo', 'P': 'Tepi', 'Q': 'Taqwa', 'R': 'Bara',
+        'S': 'Masa', 'T': 'Kota', 'U': 'Kutu', 'V': 'Lava', 'W': 'Mawar', 'X': 'Pixel',
+        'Y': 'Daya', 'Z': 'Azan',
+        'a': 'batu', 'b': 'lebah', 'c': 'kaca', 'd': 'lada', 'e': 'lelah', 'f': 'info',
+        'g': 'laga', 'h': 'bahu', 'i': 'diri', 'j': 'baja', 'k': 'luka', 'l': 'pulau',
+        'm': 'lama', 'n': 'dunia', 'o': 'solo', 'p': 'tepi', 'q': 'taqwa', 'r': 'bara',
+        's': 'masa', 't': 'kota', 'u': 'kutu', 'v': 'lava', 'w': 'mawar', 'x': 'pixel',
+        'y': 'daya', 'z': 'azan',
+        ' ': 'spasi',  
+        '.': 'titik', 
+        ',': 'koma'
+    }
     
-    Args:
-        image_data: String base64 dari gambar input
-        message: Pesan yang akan disembunyikan
-        output_filename: Nama file output (tidak digunakan dalam versi API)
+    shifted_dict = {}
+    for k in original_substitution:
+        if k.isalpha():  # Hanya geser karakter alfabet
+            if k.isupper():
+                new_pos = chr((ord(k) - ord('A') + key) % 26 + ord('A'))
+                shifted_dict[k] = original_substitution[new_pos]
+            else:
+                new_pos = chr((ord(k) - ord('a') + key) % 26 + ord('a'))
+                shifted_dict[k] = original_substitution[new_pos]
+        else:
+            # Untuk karakter non-alfabet (spasi, titik, koma), gunakan substitusi langsung
+            shifted_dict[k] = original_substitution[k]
     
-    Returns:
-        String base64 dari gambar yang sudah berisi pesan
-    """
-    # Konversi string base64 menjadi gambar
-    image_bytes = base64.b64decode(image_data)
-    image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+    return shifted_dict
+
+def encrypt_message(message, key):
+    """Mengenkripsi pesan menggunakan Caesar cipher dengan substitusi kustom."""
+    substitution_dict = create_shifted_substitution(key)
+    encrypted = []
     
-    # Tambahkan marker '$$' di akhir pesan untuk menandai akhir pesan
+    for char in message:
+        if char in substitution_dict:
+            encrypted.append(substitution_dict[char])
+        else:
+            encrypted.append(char)
+    
+    return ' '.join(encrypted)
+
+def decrypt_message(encrypted_message, key):
+    """Mendekripsi pesan yang dienkripsi."""
+    substitution_dict = create_shifted_substitution(key)
+    # Buat dictionary terbalik untuk dekripsi
+    reverse_dict = {v: k for k, v in substitution_dict.items()}
+    
+    # Split pesan terenkripsi menjadi kata-kata
+    words = encrypted_message.strip().split(' ')
+    decrypted = []
+    
+    for word in words:
+        if word in reverse_dict:
+            decrypted.append(reverse_dict[word])
+        else:
+            decrypted.append(word)
+    
+    return ''.join(decrypted)
+
+def encode_image(image_name, message, output_image_name):
+    # Tambahkan marker di akhir pesan
     message = message + "$$"
     
-    # Buat salinan gambar untuk dimodifikasi
+    # Buka gambar dan pastikan dalam mode RGB
+    image = Image.open(image_name).convert('RGB')
+    
+    # Cek ekstensi output file
+    output_ext = output_image_name.split('.')[-1].lower()
+    if output_ext != 'png':
+        # Jika bukan PNG, ubah ke PNG
+        output_image_name = output_image_name.rsplit('.', 1)[0] + '.png'
+        print("Warning: Output file akan disimpan sebagai PNG untuk menghindari kehilangan data")
+    
     encoded_image = image.copy()
     pixels = encoded_image.load()
     width, height = image.size
     
-    # Konversi setiap karakter pesan menjadi 8-bit binary
-    # Contoh: 'A' (65 dalam ASCII) -> '01000001'
+    # Convert message ke binary
     binary_message = ''.join(format(ord(char), '08b') for char in message)
     binary_length = len(binary_message)
     
-    # Cek apakah pesan terlalu panjang
     if binary_length > width * height * 3:
         raise ValueError("Pesan terlalu panjang untuk gambar ini")
     
-    # Proses penyembunyian pesan
     idx = 0
     for y in range(height):
         for x in range(width):
             if idx < binary_length:
                 r, g, b = pixels[x, y]
-                # Modifikasi bit terakhir (LSB) dari setiap komponen RGB
                 if idx < binary_length:
-                    # Contoh: jika r=200 (11001000) dan bit pesan=1
-                    # r & ~1 = 11001000 & 11111110 = 11001000 (hapus bit terakhir)
-                    # | int(bit) = 11001000 | 00000001 = 11001001
                     r = (r & ~1) | int(binary_message[idx])
                     idx += 1
                 if idx < binary_length:
@@ -58,55 +107,90 @@ def encode_image_api(image_data, message, output_filename):
             else:
                 break
     
-    # Konversi gambar hasil ke base64
-    buffered = io.BytesIO()
-    encoded_image.save(buffered, format="PNG")
-    encoded_image_base64 = base64.b64encode(buffered.getvalue()).decode()
-    
-    return encoded_image_base64
+    # Selalu simpan sebagai PNG untuk menghindari kompresi
+    encoded_image.save(output_image_name, 'PNG')
+    return f"Pesan berhasil disembunyikan dalam file {output_image_name}"
 
-def decode_image_api(image_data):
-    """
-    Fungsi untuk mengekstrak pesan tersembunyi dari gambar
-    
-    Args:
-        image_data: String base64 dari gambar yang berisi pesan
-    
-    Returns:
-        String pesan yang berhasil diekstrak atau pesan error
-    """
-    # Konversi string base64 menjadi gambar
-    image_bytes = base64.b64decode(image_data)
-    image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-    
+def decode_image(image_name):
+    # Buka gambar dan konversi ke RGB
+    image = Image.open(image_name).convert('RGB')
     pixels = image.load()
     width, height = image.size
     
-    # Ekstrak bit terakhir (LSB) dari setiap komponen RGB
     binary_data = ""
+    # Baca bit LSB dari setiap channel RGB
     for y in range(height):
         for x in range(width):
             r, g, b = pixels[x, y]
-            # Ambil bit terakhir dari setiap komponen RGB
-            # Contoh: 201 (11001001) & 1 = 00000001 = 1
-            binary_data += str(r & 1)  # Ambil LSB dari Red
-            binary_data += str(g & 1)  # Ambil LSB dari Green
-            binary_data += str(b & 1)  # Ambil LSB dari Blue
+            binary_data += str(r & 1)
+            binary_data += str(g & 1)
+            binary_data += str(b & 1)
     
-    # Konversi binary ke teks
+    # Konversi binary ke ASCII
     decoded_data = ""
     for i in range(0, len(binary_data), 8):
         byte = binary_data[i:i+8]
-        if len(byte) == 8:
+        if len(byte) == 8:  # Pastikan byte lengkap
             try:
-                # Konversi 8 bit ke karakter
-                # Contoh: '01000001' -> 65 -> 'A'
                 char = chr(int(byte, 2))
                 decoded_data += char
-                # Cek apakah sudah mencapai marker '$$'
+                # Cek apakah kita menemukan marker akhir pesan
                 if decoded_data[-2:] == "$$":
-                    return decoded_data[:-2]  # Hapus marker
+                    return decoded_data[:-2]  # Hapus marker $$
             except:
                 break
     
     return "Tidak ada pesan tersembunyi atau format tidak sesuai"
+
+def main():
+    while True:
+        print("\nImage Steganography")
+        print("1. Encode")
+        print("2. Decode")
+        choice = input("Masukkan pilihan Anda: ")
+        
+        if choice == '1':
+            image_name = input("Masukkan nama file gambar (dengan ekstensi): ")
+            message = input("Masukkan pesan yang akan dienkripsi: ")
+            key = int(input("Masukkan kunci pergeseran (angka): "))
+            
+            # Enkripsi pesan
+            encrypted_message = encrypt_message(message, key)
+            print("\n=== Hasil Enkripsi ===")
+            print(f"Plain text: {message}")
+            print(f"Cipher text: {encrypted_message}")
+            print("==================")
+            
+            output_name = input("\nMasukkan nama untuk gambar hasil (dengan ekstensi): ")
+            try:
+                result = encode_image(image_name, encrypted_message, output_name)
+                print(result)
+            except Exception as e:
+                print(f"Error: {str(e)}")
+        
+        elif choice == '2':
+            image_name = input("Masukkan nama file gambar (dengan ekstensi): ")
+            key = int(input("Masukkan kunci pergeseran (angka): "))
+            try:
+                # Ekstrak pesan dari gambar
+                encoded_message = decode_image(image_name)
+                if encoded_message == "Tidak ada pesan tersembunyi atau format tidak sesuai":
+                    print(encoded_message)
+                else:
+                    # Dekripsi pesan
+                    decrypted_message = decrypt_message(encoded_message, key)
+                    print("\n=== Hasil Dekripsi ===")
+                    print(f"Cipher text: {encoded_message}")
+                    print(f"Plain text: {decrypted_message}")
+                    print("==================")
+            except Exception as e:
+                print(f"Error: {str(e)}")
+        
+        else:
+            print("Pilihan tidak valid")
+            
+        if input("\nTekan 1 untuk lanjut, 0 untuk keluar: ") != '1':
+            break
+
+if __name__ == "__main__":
+    main()

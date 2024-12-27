@@ -1,114 +1,109 @@
-# SteganoFlaskver
-Stegano for Kejarkom 
+# Dokumentasi Endpoint API
 
-# Image Steganography with LSB Method
+## Deskripsi
+API ini menyediakan layanan untuk melakukan enkripsi dan dekripsi pesan pada file gambar menggunakan teknik steganografi. Ini adalah dokumentasi untuk endpoint yang tersedia, pengaturan CORS, dan fitur lainnya.
 
-Aplikasi steganografi gambar yang menggunakan metode LSB (Least Significant Bit) untuk menyembunyikan pesan dalam gambar digital. Proyek ini menyediakan baik API (menggunakan Flask) maupun antarmuka web sederhana.
+---
 
-## Fitur
+## Endpoint API
 
-- Menyembunyikan pesan teks dalam gambar menggunakan metode LSB
-- Mengekstrak pesan tersembunyi dari gambar
-- Mendukung format gambar PNG
-- Tersedia dalam bentuk API REST dan antarmuka web
-- Implementasi marker sistem untuk deteksi akhir pesan
-- Validasi ukuran pesan terhadap kapasitas gambar
+### 1. **Encrypt Message**
+- **Endpoint:** `/encrypt`
+- **Metode:** POST
+- **Deskripsi:** Meng-enkripsi pesan ke dalam file gambar.
+- **Request:**
+  - **Headers:**
+    - `Content-Type: multipart/form-data`
+  - **Body:**
+    - `file`: File gambar (format: `.png`, `.jpg`, atau `.jpeg`).
+    - `message`: Pesan teks yang akan dienkripsi.
+- **Response:**
+  - **200 OK**:
+    ```json
+    {
+      "status": "success",
+      "message": "Encryption successful",
+      "encrypted_file": "<nama_file_terenkripsi>"
+    }
+    ```
+  - **400 Bad Request**:
+    ```json
+    {
+      "status": "error",
+      "message": "Invalid file or parameters"
+    }
+    ```
 
-## Teknologi yang Digunakan
+### 2. **Decrypt Message**
+- **Endpoint:** `/decrypt`
+- **Metode:** POST
+- **Deskripsi:** Mendekripsi pesan dari file gambar.
+- **Request:**
+  - **Headers:**
+    - `Content-Type: multipart/form-data`
+  - **Body:**
+    - `file`: File gambar yang berisi pesan terenkripsi.
+- **Response:**
+  - **200 OK**:
+    ```json
+    {
+      "status": "success",
+      "message": "<pesan_terenkripsi>"
+    }
+    ```
+  - **400 Bad Request**:
+    ```json
+    {
+      "status": "error",
+      "message": "Invalid file"
+    }
+    ```
 
-- Python 3.10.6
-- Flask (Web Framework)
-- Pillow (Image Processing)
-- HTML5 Canvas (Web Interface) #optional
-- Base64 Encoding/Decoding
+---
 
-## Cara Kerja
+## Pengaturan CORS
+Untuk mengatur agar API ini dapat diakses dari semua sumber URL, gunakan pustaka `flask-cors`. Tambahkan konfigurasi berikut di file utama:
 
-### Metode LSB (Least Significant Bit)
+```python
+from flask_cors import CORS
 
-Aplikasi ini menggunakan teknik LSB, dimana pesan disembunyikan dengan memodifikasi bit terakhir dari setiap komponen warna (RGB) dalam pixel gambar. Karena perubahan terjadi pada bit yang paling tidak signifikan, perubahan pada gambar hampir tidak terlihat oleh mata manusia.
+# Mengaktifkan CORS
+CORS(app, resources={r"/*": {"origins": "*"}})
+```
 
-### Proses Encoding
+---
 
-1. Konversi pesan ke bentuk binary (8-bit per karakter)
-2. Tambahkan marker '$$' di akhir pesan
-3. Modifikasi LSB dari setiap komponen RGB pixel
-4. Simpan hasil sebagai gambar PNG
+## Kustomisasi Nama File
+Agar API mendukung semua nama file gambar, logika berikut digunakan:
 
-### Proses Decoding
+1. Ketika file diunggah:
+   - API secara otomatis menyimpan file dengan nama yang diunggah.
+   - Format file dicek untuk memastikan kompatibilitas (.png, .jpg, .jpeg).
 
-1. Ekstrak LSB dari setiap komponen RGB pixel
-2. Konversi sequence bit menjadi karakter
-3. Deteksi marker '$$' untuk menentukan akhir pesan
+2. Contoh implementasi:
+   ```python
+   from werkzeug.utils import secure_filename
 
-## Instalasi
+   @app.route('/encrypt', methods=['POST'])
+   def encrypt():
+       file = request.files['file']
+       filename = secure_filename(file.filename)
+       file.save(os.path.join('uploads', filename))
+       # Proses enkripsi di sini
+       return jsonify({"status": "success", "encrypted_file": filename})
+   ```
 
-bash
-Clone repository
-git clone https://github.com/username/image-steganography.git
-cd image-steganography
-Install dependencies
-pip install -r requirements.txt
+---
 
+## Catatan Keamanan
+Untuk memastikan keamanan tambahan:
+- Jangan tampilkan detail kunci atau metode enkripsi dalam pesan respon API.
+- Kembalikan hanya hasil akhir (contohnya nama file terenkripsi atau pesan dekripsi).
 
-## Penggunaan
-
-### Menggunakan API
-
-1. Jalankan server Flask:
-
-python api.py
-
-
-2. Gunakan endpoint API:
-- `GET /` - Cek status API
-- `GET /docs` - Lihat dokumentasi API
-- `POST /encode` - Sembunyikan pesan dalam gambar
-- `POST /decode` - Ekstrak pesan dari gambar
-
-### Menggunakan Web Interface
-
-1. Buka file `test.html` di browser
-2. Upload gambar
-3. Masukkan pesan
-4. Klik tombol Encode/Decode
-
-### Menggunakan Python Script
-
-
-python
-import requests
-import base64
-Baca gambar
-with open("gambar.jpg", "rb") as image_file:
-image_base64 = base64.b64encode(image_file.read()).decode()
-Encode pesan
-response = requests.post("http://localhost:5000/encode",
-json={
-"image": image_base64,
-"message": "Pesan rahasia"
-})  
-
-## Struktur Proyek
-
-image-steganography/
-├── api.py            # Server Flask dan endpoint API
-├── app.py            # File utama untuk menjalankan Flask
-├── imgstegno.py      # Implementasi fungsi steganografi
-├── test_simple.py    # Script testing API
-├── test.html         # Interface web sederhana
-└── requirements.txt  # Dependencies
-
-## Batasan
-
-- Ukuran pesan yang dapat disembunyikan tergantung pada resolusi gambar
-- Hanya mendukung gambar format PNG untuk output
-- Perubahan pada gambar hasil (seperti kompresi) dapat merusak pesan tersembunyi
-
-## Kontribusi
-
-Kontribusi selalu diterima. Untuk perubahan besar, silakan buka issue terlebih dahulu untuk mendiskusikan perubahan yang diinginkan.
-
-## Lisensi
-
-[MIT License](LICENSE)
+Contoh response hasil akhir:
+```json
+{
+  "status": "success",
+  "message": "Decryption successful",
+  "result": "<pesan_terenkripsi>"
+}

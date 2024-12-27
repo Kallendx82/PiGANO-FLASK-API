@@ -1,21 +1,45 @@
 from flask import Flask, render_template, request, send_file, jsonify
 from werkzeug.utils import secure_filename
 import os
+import logging
+import subprocess
 from imgstegno import encrypt_message, encode_image, decode_image, decrypt_message
 
 app = Flask(__name__)
 
-# Konfigurasi upload folder
-UPLOAD_FOLDER = 'uploads'
-OUTPUT_FOLDER = 'outputs'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+# Konfigurasi logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
+# Konfigurasi folder
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+OUTPUT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'outputs')
 
 # Buat folder jika belum ada
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+# Set permission folder berdasarkan sistem operasi
+if os.name == 'nt':  # Untuk Windows
+    try:
+        # Jalankan icacls untuk memberikan full permission
+        subprocess.run(['icacls', UPLOAD_FOLDER, '/grant', 'Everyone:(OI)(CI)F'], check=True)
+        subprocess.run(['icacls', OUTPUT_FOLDER, '/grant', 'Everyone:(OI)(CI)F'], check=True)
+        logger.info("Permission folder berhasil diatur untuk Windows")
+    except Exception as e:
+        logger.error(f"Error saat mengatur permission folder: {str(e)}")
+else:  # Untuk Unix/Linux
+    try:
+        os.chmod(UPLOAD_FOLDER, 0o777)
+        os.chmod(OUTPUT_FOLDER, 0o777)
+        logger.info("Permission folder berhasil diatur untuk Unix/Linux")
+    except Exception as e:
+        logger.error(f"Error saat mengatur permission folder: {str(e)}")
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -41,7 +65,6 @@ def encode():
         return 'Tidak ada file yang dipilih', 400
     
     if file and allowed_file(file.filename):
-        # Simpan file yang diunggah
         filename = secure_filename(file.filename)
         input_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(input_path)
@@ -53,13 +76,14 @@ def encode():
         
         try:
             result = encode_image(input_path, encrypted_message, output_path)
-            return send_file(output_path, as_attachment=True)
+            return send_file(
+                output_path,
+                mimetype='image/png',
+                as_attachment=True,
+                download_name=output_filename
+            )
         except Exception as e:
             return str(e), 400
-        finally:
-            # Bersihkan file temporary
-            if os.path.exists(input_path):
-                os.remove(input_path)
     
     return 'Format file tidak diizinkan', 400
 
@@ -89,12 +113,59 @@ def decode():
             return {'cipher_text': encoded_message, 'plain_text': decrypted_message}
         except Exception as e:
             return str(e), 400
-        finally:
-            # Bersihkan file temporary
-            if os.path.exists(input_path):
-                os.remove(input_path)
     
     return 'Format file tidak diizinkan', 400
+
+@app.route('/get-cipher', methods=['POST'])
+def get_cipher():
+    if 'file' not in request.files:
+        return 'Tidak ada file yang diunggah', 400
+    
+    file = request.files['file']
+    message = request.form.get('message', '')
+    key = int(request.form.get('key', 0))
+    
+    if file.filename == '':
+        return 'Tidak ada file yang dipilih', 400
+    
+    if file and allowed_file(file.filename):
+        # Hanya enkripsi pesan tanpa menyimpan gambar
+        encrypted_message = encrypt_message(message, key)
+        return jsonify({'cipher_text': encrypted_message})
+    
+    return 'Format file tidak diizinkan', 400
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'Tidak ada file yang diunggah'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'Tidak ada file yang dipilih'}), 400
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(file_path)
+        return jsonify({
+            'success': True,
+            'message': 'File berhasil diunggah',
+            'filename': filename
+        }), 200
+    
+    return jsonify({'error': 'Format file tidak diizinkan'}), 400
+
+@app.route('/check-folders')
+def check_folders():
+    upload_exists = os.path.exists(app.config['UPLOAD_FOLDER'])
+    upload_writable = os.access(app.config['UPLOAD_FOLDER'], os.W_OK)
+    
+    return jsonify({
+        'upload_folder_exists': upload_exists,
+        'upload_folder_writable': upload_writable,
+        'upload_folder_path': app.config['UPLOAD_FOLDER']
+    })
 
 if __name__ == '__main__':
     app.run(debug=True) 

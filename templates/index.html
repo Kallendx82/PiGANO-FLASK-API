@@ -41,18 +41,11 @@
             border: 1px solid #ccc;
             display: none;
         }
-        #status {
-            margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ccc;
-        }
     </style>
 </head>
 <body>
     <h1>Image Steganography</h1>
     
-    <div id="status"></div> <!-- Status message will be displayed here -->
-
     <div class="container">
         <h2>Encode Pesan</h2>
         <form id="encodeForm" enctype="multipart/form-data">
@@ -69,7 +62,20 @@
                 <input type="number" id="encodeKey" name="key" required>
             </div>
             <button type="submit">Encode</button>
+            <button type="button" id="showCipherBtn" style="display: none; margin-left: 10px; background-color: #28a745;">
+                Lihat Cipher Text
+            </button>
         </form>
+        
+        <div id="previewImage" style="margin-top: 20px; display: none;">
+            <h4>Gambar Hasil Encode:</h4>
+            <img id="encodedImage" style="max-width: 100%; height: auto;" />
+        </div>
+
+        <div id="cipherResult" style="display: none; margin-top: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+            <h4>Cipher Text:</h4>
+            <p id="cipherText"></p>
+        </div>
     </div>
 
     <div class="container">
@@ -89,47 +95,101 @@
     </div>
 
     <script>
-        // Check API status on page load
-        async function checkApiStatus() {
-            const statusDiv = document.getElementById('status');
+        // Tambahkan fungsi untuk upload file
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
             try {
-                const response = await fetch('/status');
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
                 if (response.ok) {
-                    const data = await response.json();
-                    statusDiv.innerHTML = `<strong>Status:</strong> ${data.status}`;
+                    console.log('File berhasil diunggah:', data.filename);
+                    return data.filename;
                 } else {
-                    statusDiv.innerHTML = `<strong>Status:</strong> API tidak berjalan`;
+                    throw new Error(data.error || 'Gagal mengunggah file');
                 }
             } catch (error) {
-                statusDiv.innerHTML = `<strong>Status:</strong> Tidak dapat terhubung ke API`;
+                console.error('Error:', error);
+                alert('Gagal mengunggah file: ' + error.message);
+                return null;
             }
         }
 
-        // Call the function to check API status
-        check ApiStatus();
-
+        // Modifikasi event handler form encode
         document.getElementById('encodeForm').onsubmit = async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
+            const file = formData.get('file');
+            
+            // Upload file terlebih dahulu
+            const uploadedFilename = await uploadFile(file);
+            if (!uploadedFilename) {
+                return; // Berhenti jika upload gagal
+            }
             
             try {
+                // Lanjutkan dengan proses encode seperti sebelumnya
                 const response = await fetch('/encode', {
                     method: 'POST',
                     body: formData
                 });
                 
                 if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'encoded_image.png';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    a.remove();
+                    const contentType = response.headers.get('content-type');
+                    
+                    if (contentType && contentType.includes('image/png')) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        
+                        const previewDiv = document.getElementById('previewImage');
+                        const previewImg = document.getElementById('encodedImage');
+                        previewImg.src = url;
+                        previewDiv.style.display = 'block';
+                        
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'encoded_image.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        
+                        document.getElementById('showCipherBtn').style.display = 'inline-block';
+                    } else {
+                        const errorText = await response.text();
+                        alert('Error: ' + errorText);
+                    }
                 } else {
-                    alert('Error: ' + await response.text());
+                    const errorText = await response.text();
+                    alert('Error: ' + errorText);
+                }
+            } catch (error) {
+                alert('Error: ' + error);
+            }
+        };
+
+        document.getElementById('showCipherBtn').onclick = async () => {
+            const formData = new FormData(document.getElementById('encodeForm'));
+            
+            try {
+                const response = await fetch('/get-cipher', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const cipherResult = document.getElementById('cipherResult');
+                    const cipherText = document.getElementById('cipherText');
+                    cipherText.textContent = data.cipher_text;
+                    cipherResult.style.display = 'block';
+                } else {
+                    const errorText = await response.text();
+                    alert('Error: ' + errorText);
                 }
             } catch (error) {
                 alert('Error: ' + error);
@@ -162,6 +222,19 @@
                 alert('Error: ' + error);
             }
         };
+
+        async function checkFolders() {
+            try {
+                const response = await fetch('/check-folders');
+                const data = await response.json();
+                console.log('Status folder:', data);
+            } catch (error) {
+                console.error('Error checking folders:', error);
+            }
+        }
+
+        // Panggil saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', checkFolders);
     </script>
 </body>
-</html>
+</html> 
