@@ -58,8 +58,6 @@ pip install -r requirements.txt
 
 1. Jalankan server Flask:
 
-
-bash
 python api.py
 
 
@@ -95,11 +93,12 @@ json={
 ## Struktur Proyek
 
 image-steganography/
-├── api.py # Server Flask dan endpoint API
-├── imgstegno.py # Implementasi fungsi steganografi
-├── test_simple.py # Script testing API
-├── test.html # Antarmuka web
-└── requirements.txt # Dependencies
+├── api.py            # Server Flask dan endpoint API
+├── app.py            # File utama untuk menjalankan Flask
+├── imgstegno.py      # Implementasi fungsi steganografi
+├── test_simple.py    # Script testing API
+├── test.html         # Interface web sederhana
+└── requirements.txt  # Dependencies
 
 ## Batasan
 
