@@ -49,21 +49,14 @@ json={
 
 ### 3. Testing API
 
-1. Test Sederhana:
+Test:
 ```bash
-python test_simple.py
+python api.py
 ```
 bash:GUIDE.md
-python test_simple.py
+python api.py
 ```
 
-2. Test Lengkap:
-```bash
-python test_api.py
-
-bash:GUIDE.md
-python test_api.py
-```
 
 ## Struktur Project
 
