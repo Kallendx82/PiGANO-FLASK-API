@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Steganography</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            display: none;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Steganography</h1>
+    
+    <div id="status"></div> <!-- Status message will be displayed here -->
+
+    <div class="container">
+        <h2>Encode Pesan</h2>
+        <form id="encodeForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="encodeFile">Pilih Gambar:</label>
+                <input type="file" id="encodeFile" name="file" accept=".png,.jpg,.jpeg" required>
+            </div>
+            <div class="form-group">
+                <label for="message">Pesan:</label>
+                <textarea id="message" name="message" rows="4" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="encodeKey">Kunci:</label>
+                <input type="number" id="encodeKey" name="key" required>
+            </div>
+            <button type="submit">Encode</button>
+        </form>
+    </div>
+
+    <div class="container">
+        <h2>Decode Pesan</h2>
+        <form id="decodeForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="decodeFile">Pilih Gambar:</label>
+                <input type="file" id="decodeFile" name="file" accept=".png" required>
+            </div>
+            <div class="form-group">
+                <label for="decodeKey">Kunci:</label>
+                <input type="number" id="decodeKey" name="key" required>
+            </div>
+            <button type="submit">Decode</button>
+        </form>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // Check API status on page load
+        async function checkApiStatus() {
+            const statusDiv = document.getElementById('status');
+            try {
+                const response = await fetch('/status');
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.innerHTML = `<strong>Status:</strong> ${data.status}`;
+                } else {
+                    statusDiv.innerHTML = `<strong>Status:</strong> API tidak berjalan`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<strong>Status:</strong> Tidak dapat terhubung ke API`;
+            }
+        }
+
+        // Call the function to check API status
+        check ApiStatus();
+
+        document.getElementById('encodeForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            try {
+                const response = await fetch('/encode', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'encoded_image.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                } else {
+                    alert('Error: ' + await response.text());
+                }
+            } catch (error) {
+                alert('Error: ' + error);
+            }
+        };
+
+        document.getElementById('decodeForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const response = await fetch('/decode', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = `
+                        <h3>Hasil Dekripsi:</h3>
+                        <p><strong>Cipher text:</strong> ${data.cipher_text}</p>
+                        <p><strong>Plain text:</strong> ${data.plain_text}</p>
+                    `;
+                } else {
+                    alert('Error: ' + await response.text());
+                }
+            } catch (error) {
+                alert('Error: ' + error);
+            }
+        };
+    </script>
+</body>
+</html>
