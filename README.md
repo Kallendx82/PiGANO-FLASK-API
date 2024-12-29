@@ -1,109 +1,110 @@
-# Dokumentasi Endpoint API
+# Image Steganography Web Application
 
 ## Deskripsi
-API ini menyediakan layanan untuk melakukan enkripsi dan dekripsi pesan pada file gambar menggunakan teknik steganografi. Ini adalah dokumentasi untuk endpoint yang tersedia, pengaturan CORS, dan fitur lainnya.
+Aplikasi web untuk menyembunyikan pesan rahasia ke dalam gambar menggunakan teknik steganografi. Aplikasi ini memungkinkan pengguna untuk mengenkripsi pesan ke dalam gambar dan mendekripsi pesan dari gambar yang telah dienkripsi.
+
+---
+
+## Fitur Utama
+
+### 1. **Encode Pesan**
+- Upload gambar (format: `.png`, `.jpg`, atau `.jpeg`)
+- Masukkan pesan yang akan disembunyikan
+- Masukkan kunci numerik untuk enkripsi
+- Preview gambar hasil encode
+- Download gambar hasil encode
+- Lihat cipher text hasil enkripsi
+- Batasan ukuran file: maksimal 10MB
+
+### 2. **Decode Pesan**
+- Upload gambar yang berisi pesan tersembunyi (format: `.png`)
+- Masukkan kunci numerik untuk dekripsi
+- Tampilkan hasil dekripsi (cipher text dan plain text)
+- Batasan ukuran file: maksimal 10MB
 
 ---
 
 ## Endpoint API
 
-### 1. **Encrypt Message**
-- **Endpoint:** `/encrypt`
+### 1. **Encode Image (`/encode`)**
 - **Metode:** POST
-- **Deskripsi:** Meng-enkripsi pesan ke dalam file gambar.
-- **Request:**
-  - **Headers:**
-    - `Content-Type: multipart/form-data`
-  - **Body:**
-    - `file`: File gambar (format: `.png`, `.jpg`, atau `.jpeg`).
-    - `message`: Pesan teks yang akan dienkripsi.
+- **Request Body (multipart/form-data):**
+  - `file`: File gambar
+  - `message`: Pesan yang akan disembunyikan
+  - `key`: Kunci numerik
 - **Response:**
-  - **200 OK**:
-    ```json
-    {
-      "status": "success",
-      "message": "Encryption successful",
-      "encrypted_file": "<nama_file_terenkripsi>"
-    }
-    ```
-  - **400 Bad Request**:
-    ```json
-    {
-      "status": "error",
-      "message": "Invalid file or parameters"
-    }
-    ```
+  - File gambar hasil encode (format PNG)
 
-### 2. **Decrypt Message**
-- **Endpoint:** `/decrypt`
+### 2. **Decode Image (`/decode`)**
 - **Metode:** POST
-- **Deskripsi:** Mendekripsi pesan dari file gambar.
-- **Request:**
-  - **Headers:**
-    - `Content-Type: multipart/form-data`
-  - **Body:**
-    - `file`: File gambar yang berisi pesan terenkripsi.
+- **Request Body (multipart/form-data):**
+  - `file`: File gambar
+  - `key`: Kunci numerik
 - **Response:**
-  - **200 OK**:
-    ```json
-    {
-      "status": "success",
-      "message": "<pesan_terenkripsi>"
-    }
-    ```
-  - **400 Bad Request**:
-    ```json
-    {
-      "status": "error",
-      "message": "Invalid file"
-    }
-    ```
+  ```json
+  {
+    "cipher_text": "Pesan terenkripsi",
+    "plain_text": "Pesan asli"
+  }
+  ```
+
+### 3. **Get Cipher Text (`/get-cipher`)**
+- **Metode:** POST
+- **Request Body (multipart/form-data):**
+  - `file`: File gambar
+  - `message`: Pesan
+  - `key`: Kunci numerik
+- **Response:**
+  ```json
+  {
+    "cipher_text": "Pesan terenkripsi"
+  }
+  ```
 
 ---
 
-## Pengaturan CORS
-Untuk mengatur agar API ini dapat diakses dari semua sumber URL, gunakan pustaka `flask-cors`. Tambahkan konfigurasi berikut di file utama:
-
-```python
-from flask_cors import CORS
-
-# Mengaktifkan CORS
-CORS(app, resources={r"/*": {"origins": "*"}})
-```
+## Batasan dan Keamanan
+- Ukuran file maksimal: 10MB
+- Format file yang didukung:
+  - Input: PNG, JPG, JPEG
+  - Output: Selalu PNG untuk menjaga kualitas
+- Validasi input untuk mencegah file berbahaya
+- Pengecekan integritas file sebelum pemrosesan
 
 ---
 
-## Kustomisasi Nama File
-Agar API mendukung semua nama file gambar, logika berikut digunakan:
-
-1. Ketika file diunggah:
-   - API secara otomatis menyimpan file dengan nama yang diunggah.
-   - Format file dicek untuk memastikan kompatibilitas (.png, .jpg, .jpeg).
-
-2. Contoh implementasi:
-   ```python
-   from werkzeug.utils import secure_filename
-
-   @app.route('/encrypt', methods=['POST'])
-   def encrypt():
-       file = request.files['file']
-       filename = secure_filename(file.filename)
-       file.save(os.path.join('uploads', filename))
-       # Proses enkripsi di sini
-       return jsonify({"status": "success", "encrypted_file": filename})
-   ```
+## Teknologi yang Digunakan
+- Backend: Flask (Python)
+- Frontend: HTML, CSS, JavaScript
+- Image Processing: PIL (Python Imaging Library)
+- File Handling: Werkzeug
 
 ---
 
-## Catatan Keamanan
-Untuk memastikan keamanan tambahan:
-- Jangan tampilkan detail kunci atau metode enkripsi dalam pesan respon API.
-- Kembalikan hanya hasil akhir (contohnya nama file terenkripsi atau pesan dekripsi).
+## Catatan Penggunaan
+1. Pastikan menggunakan kunci sama saat encode dan decode
+2. Simpan kunci dengan aman karena diperlukan untuk mendekripsi pesan, dan kunci tidak dapat dikembalikan.
+3. Gambar hasil encode akan selalu dalam format PNG
+4. Jika terjadi error saat decode, pastikan:
+   - File yang diupload adalah file hasil encode
+   - Menggunakan kunci yang benar
+   - Format file adalah PNG
+   - Ukuran file tidak melebihi 10megabyte
+5. Jika ingin menggunakan kunci yang berbeda, maka kunci yang digunakan saat encode dan decode harus berbeda.
+6. Berikan clue kepada target, agar target mengetahui kunci yang digunakan.
+7. Bersihkan cache browser, agar tidak ada data yang tersimpan di browser.
 
-Contoh response hasil akhir:
-```json
-{
-  "status": "success",
-  "message": "Decryption successful",
-  "result": "<pesan_terenkripsi>"
-}
+---
+
+## Keamanan
+- Pesan dienkripsi sebelum disembunyikan dalam gambar
+- Kunci numerik diperlukan untuk enkripsi dan dekripsi
+- Tidak ada penyimpanan pesan atau kunci di server
+- Validasi file untuk mencegah serangan berbasis file
+- Lindungi kunci dengan baik, agar informasi rahasia tidak dapat dibuka oleh orang lain yang tidak berhak.
+- Samarkan nama file yang diupload, agar tidak mencurigakan, dan menjadi sasaran serangan.
+
+## Kontak:
+- Email: [rajihnibras@gmail.com]/[iel.auriel25@upi.edu]
+- Instagram: [@rajih.nm]/[_auriel_03]
+- Github: [Kallendx82]/[AurielILearnHowToCode]

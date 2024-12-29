@@ -68,13 +68,22 @@ def encode_image(image_name, message, output_image_name):
     # Tambahkan marker di akhir pesan
     message = message + "$$"
     
-    # Buka gambar dan pastikan dalam mode RGB
-    image = Image.open(image_name).convert('RGB')
+    # Buka gambar dan pastikan dalam mode RGB dengan background putih
+    original = Image.open(image_name)
+    if original.mode in ('RGBA', 'LA') or (original.mode == 'P' and 'transparency' in original.info):
+        # Buat background putih
+        background = Image.new('RGB', original.size, (255, 255, 255))
+        # Paste gambar original ke background putih dengan alpha channel
+        if original.mode == 'P':
+            original = original.convert('RGBA')
+        background.paste(original, mask=original.split()[3] if original.mode == 'RGBA' else None)
+        image = background
+    else:
+        image = original.convert('RGB')
     
     # Cek ekstensi output file
     output_ext = output_image_name.split('.')[-1].lower()
     if output_ext != 'png':
-        # Jika bukan PNG, ubah ke PNG
         output_image_name = output_image_name.rsplit('.', 1)[0] + '.png'
         print("Warning: Output file akan disimpan sebagai PNG untuk menghindari kehilangan data")
     

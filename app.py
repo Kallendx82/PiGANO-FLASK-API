@@ -167,5 +167,39 @@ def check_folders():
         'upload_folder_path': app.config['UPLOAD_FOLDER']
     })
 
+@app.route('/decrypt', methods=['POST'])
+def decrypt():
+    try:
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image file provided'}), 400
+
+        image = request.files['image']
+        
+        if image.content_length > 10 * 1024 * 1024:  # 10MB
+            return jsonify({'error': 'File size must not exceed 10MB'}), 400
+
+        key = request.form.get('key')
+
+        if not key:
+            return jsonify({'error': 'Key is required'}), 400
+
+        try:
+            key = int(key)
+        except ValueError:
+            return jsonify({'error': 'Key must be an integer'}), 400
+
+        image_path = os.path.join(UPLOAD_FOLDER, image.filename)
+        image.save(image_path)
+
+        encrypted_message = decode_image(image_path)
+        if encrypted_message == "Tidak ada pesan tersembunyi atau format tidak sesuai":
+            return jsonify({'error': encrypted_message}), 400
+
+        decrypted_message = decrypt_message(encrypted_message, key)
+
+        return jsonify({'message': 'Decryption successful', 'decrypted_message': decrypted_message}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True) 

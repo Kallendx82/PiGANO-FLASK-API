@@ -58,6 +58,10 @@ def decrypt():
             return jsonify({'error': 'No image file provided'}), 400
 
         image = request.files['image']
+        
+        if image.content_length > 10 * 1024 * 1024:  # 10MB
+            return jsonify({'error': 'File size must not exceed 10MB'}), 400
+
         key = request.form.get('key')
 
         if not key:
