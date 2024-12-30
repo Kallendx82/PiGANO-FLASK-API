@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, make_response, send_from_directory
 from flask_cors import CORS
 from imgstegno import encrypt_message, decrypt_message, encode_image, decode_image
 import os
@@ -14,13 +14,13 @@ os.makedirs(RESULT_FOLDER, exist_ok=True)
 
 @app.route('/')
 def home():
-    return jsonify({"message": "Welcome to the API. Use /status to check the API status."}), 200
+    return render_template('index.html')
 
 @app.route('/status', methods=['GET'])
 def status():
     return jsonify({"status": "API is running"}), 200
 
-@app.route('/encrypt', methods=['POST'])
+@app.route('/encode', methods=['POST'])
 def encrypt():
     try:
         if 'image' not in request.files:
@@ -45,13 +45,20 @@ def encrypt():
 
         output_image_name = f"encoded_{image.filename.rsplit('.', 1)[0]}.png"
         output_image_path = os.path.join(RESULT_FOLDER, output_image_name)
-        encode_image(image_path, encrypted_message, output_image_path)
+        mse, psnr = encode_image(image_path, encrypted_message, output_image_path)
 
-        return jsonify({'message': 'Encryption successful', 'encoded_image': output_image_name}), 200
+        response = {
+            'ciphertext': encrypted_message,
+            'filename': output_image_name,
+            'mse': mse,
+            'psnr': psnr
+        }
+        # Return JSON response
+        return jsonify(response)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/decrypt', methods=['POST'])
+@app.route('/decode', methods=['POST'])
 def decrypt():
     try:
         if 'image' not in request.files:
@@ -75,19 +82,24 @@ def decrypt():
         image_path = os.path.join(UPLOAD_FOLDER, image.filename)
         image.save(image_path)
 
-        encrypted_message = decode_image(image_path)
-        if encrypted_message == "Tidak ada pesan tersembunyi atau format tidak sesuai":
-            return jsonify({'error': encrypted_message}), 400
+        encoded_message = decode_image(image_path)
+        if encoded_message == "Tidak ada pesan tersembunyi atau format tidak sesuai":
+            return jsonify({'error': encoded_message}), 400
 
-        decrypted_message = decrypt_message(encrypted_message, key)
+        decrypted_message = decrypt_message(encoded_message, key)
 
-        return jsonify({'message': 'Decryption successful', 'decrypted_message': decrypted_message}), 200
+        return {'cipher_text': encoded_message, 'plain_text': decrypted_message}
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/download/<filename>', methods=['GET'])
-def download(filename):
+@app.route('/download', methods=['POST'])
+def download():
     try:
+        data = request.get_json()
+        filename = data.get('filename') if data else None
+        if not filename:
+            return jsonify({'error': 'Filename is required'}), 400
+        
         file_path = os.path.join(RESULT_FOLDER, filename)
         if not os.path.exists(file_path):
             return jsonify({'error': 'File not found'}), 404

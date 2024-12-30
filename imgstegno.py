@@ -1,4 +1,21 @@
 from PIL import Image
+from skimage.metrics import mean_squared_error, peak_signal_noise_ratio
+import numpy as np
+
+def calculate_metrics (image_path1, image_path2):
+    # Load gambar
+    image1 = Image.open(image_path1).convert("RGB")
+    image2 = Image.open(image_path2).convert("RGB")
+
+    # Convert images to numpy arrays
+    array1 = np.array(image1)
+    array2 = np.array(image2)
+
+    # Calculate MSE and PSNR
+    mse = mean_squared_error(array1, array2)
+    psnr = peak_signal_noise_ratio(array1, array2)
+
+    return mse, psnr
 
 def create_shifted_substitution(key):
     """Membuat kamus substitusi yang digeser berdasarkan key."""
@@ -129,7 +146,8 @@ def encode_image(image_name, message, output_image_name):
     
     # Simpan dengan mode yang sesuai
     encoded_image.save(output_image_name, 'PNG')
-    return f"Pesan berhasil disembunyikan dalam file {output_image_name}"
+    mse, psnr = calculate_metrics(image_name, output_image_name)
+    return mse, psnr
 
 def decode_image(image_name):
     # Buka gambar dan konversi ke RGB
