@@ -1,7 +1,7 @@
-# Image Steganography Web Application
+# PiGANO
 
 ## Deskripsi
-Aplikasi web untuk menyembunyikan pesan rahasia ke dalam gambar menggunakan teknik steganografi. Aplikasi ini memungkinkan pengguna untuk mengenkripsi pesan ke dalam gambar dan mendekripsi pesan dari gambar yang telah dienkripsi.
+PiGANO adalah aplikasi web untuk menyembunyikan pesan rahasia ke dalam gambar menggunakan teknik steganografi. Aplikasi ini memungkinkan pengguna untuk mengenkripsi pesan ke dalam gambar dan mendekripsi pesan dari gambar yang telah dienkripsi.
 
 ---
 
@@ -108,3 +108,62 @@ Aplikasi web untuk menyembunyikan pesan rahasia ke dalam gambar menggunakan tekn
 - Email: [rajihnibras@gmail.com]/[iel.auriel25@upi.edu]
 - Instagram: [@rajih.nm]/[_auriel_03]
 - Github: [Kallendx82]/[AurielILearnHowToCode]
+
+## Struktur File
+
+### 1. `app.py`
+File utama aplikasi Flask yang menangani:
+- Routing dan endpoint API
+- Penanganan request dari client
+- Manajemen file upload/download
+- Integrasi dengan fungsi steganografi
+- Konfigurasi server dan CORS
+
+### 2. `imgstegno.py`
+File yang berisi implementasi steganografi:
+- Fungsi enkripsi dan dekripsi pesan
+- Fungsi encode pesan ke dalam gambar
+- Fungsi decode pesan dari gambar
+- Implementasi algoritma substitusi dan Caesar cipher
+- Penanganan manipulasi pixel gambar
+
+### 3. `templates/index.html`
+File template utama yang menampilkan:
+- Interface pengguna (UI)
+- Form untuk encode dan decode
+- Preview gambar hasil
+- Tampilan hasil enkripsi/dekripsi
+- Styling CSS untuk tampilan aplikasi
+
+### 4. `static/js/main.js`
+File JavaScript yang menangani:
+- Interaksi client-side
+- AJAX requests ke server
+- Validasi input pengguna
+- Penanganan file upload
+- Preview dan download hasil
+- Manajemen tampilan dinamis
+
+### 5. `requirements.txt`
+File yang berisi daftar dependensi Python:
+- Flask: Web framework
+- Pillow: Library pengolahan gambar
+- Flask-CORS: Penanganan Cross-Origin Resource Sharing
+- Werkzeug: Utilitas WSGI
+- Dependensi lain yang diperlukan
+
+### 6. Folder `uploads/`
+Folder yang digunakan untuk:
+- Menyimpan file gambar sementara yang diupload pengguna
+- Menampung file sebelum diproses encode/decode
+- File dalam folder ini akan dihapus secara otomatis
+- Memastikan penanganan file yang aman
+
+### 7. Folder `outputs/`
+Folder yang digunakan untuk:
+- Menyimpan hasil gambar yang telah di-encode
+- Tempat penyimpanan sementara sebelum file didownload
+- File akan dihapus setelah didownload
+- Memastikan hasil encode dapat diakses pengguna
+
+Setiap file memiliki peran penting dalam menjalankan aplikasi PiGANO secara keseluruhan, mulai dari backend processing hingga frontend interface.
