@@ -18,7 +18,19 @@ def home():
 
 @app.route('/status', methods=['GET'])
 def status():
-    return jsonify({"status": "API is running"}), 200
+    return jsonify({
+        "service": "PiGANO API",
+        "status": "API is running",
+        "version": "1.0",
+        "connection": {
+            "type": "Flask Web Server",
+            "port": 5000,
+            "host": "localhost",
+            "framework": "Flask (Python)",
+            "database": "No Database Required",
+            "service_type": "Image Steganography Service"
+        }
+    }), 200
 
 @app.route('/encode', methods=['POST'])
 def encrypt():
