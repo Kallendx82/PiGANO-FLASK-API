@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Steganography</title>
+    <title>PiGANO</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -41,17 +41,72 @@
             border: 1px solid #ccc;
             display: none;
         }
+        .btn-download {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .btn-download:hover {
+            background-color: #218838;
+        }
+        
+        .custom-file-input {
+            position: relative;
+            display: inline-block;
+        }
+
+        .custom-file-input input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .custom-file-input .file-label {
+            display: inline-block;
+            padding: 6px 12px;
+            background: #6c757d;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .custom-file-input .file-label:hover {
+            background: #5a6268;
+        }
+
+        .custom-file-input .file-chosen {
+            margin-left: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .custom-file-input .file-label.file-selected {
+            background: #dc3545; /* Warna merah darah */
+        }
+
+        .custom-file-input .file-label.file-selected:hover {
+            background: #c82333; /* Warna merah darah yang lebih gelap untuk hover */
+        }
     </style>
 </head>
 <body>
-    <h1>Image Steganography</h1>
+    <h1>PiGANO</h1>
     
     <div class="container">
         <h2>Encode Pesan</h2>
         <form id="encodeForm" enctype="multipart/form-data">
             <div class="form-group">
-                <label for="encodeFile">Pilih Gambar:</label>
-                <input type="file" id="encodeFile" name="image" accept=".png,.jpg,.jpeg" required>
+                <label for="encodeFile">Pilih Gambar (ukuran gambar ≤ 10mb):</label>
+                <div class="custom-file-input">
+                    <input type="file" id="encodeFile" name="file" accept=".png,.jpg,.jpeg" required>
+                    <label for="encodeFile" class="file-label">Pilih File Gambar untuk di enkripsi</label>
+                    <span class="file-chosen">Belum ada File gambar yang dipilih</span>
+                </div>
             </div>
             <div class="form-group">
                 <label for="message">Pesan:</label>
@@ -61,8 +116,26 @@
                 <label for="encodeKey">Kunci:</label>
                 <input type="number" id="encodeKey" name="key" required>
             </div>
-            <button type="submit">Encodeee</button>
+            <button type="submit">Encode</button>
+            <button type="button" id="showCipherBtn" style="display: none; margin-left: 10px; background-color: #28a745;">
+                Lihat Cipher Text
+            </button>
         </form>
+        
+        <div id="previewImage" style="margin-top: 20px; display: none;">
+            <h4>Gambar Hasil Encode:</h4>
+            <img id="encodedImage" style="max-width: 100%; height: auto;" />
+            <div style="margin-top: 10px;">
+                <button id="downloadBtn" class="btn-download" style="display: none; background-color: #28a745;">
+                    Download Gambar
+                </button>
+            </div>
+        </div>
+
+        <div id="cipherResult" style="display: none; margin-top: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+            <h4>Cipher Text:</h4>
+            <p id="cipherText"></p>
+        </div>
     </div>
 
     <div class="container">
@@ -70,7 +143,11 @@
         <form id="decodeForm" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="decodeFile">Pilih Gambar:</label>
-                <input type="file" id="decodeFile" name="image" accept=".png,.jpg,.jpeg" required>
+                <div class="custom-file-input">
+                    <input type="file" id="decodeFile" name="file" accept=".png" required>
+                    <label for="decodeFile" class="file-label">Pilih File Gambar untuk di dekripsi</label>
+                    <span class="file-chosen">Belum ada File gambar yang dipilih</span>
+                </div>
             </div>
             <div class="form-group">
                 <label for="decodeKey">Kunci:</label>
@@ -82,72 +159,61 @@
     </div>
 
     <script>
-        document.getElementById('encodeForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            
-            try {
-                const response = await fetch('/encode', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (response.ok) {
-                    const { filename } = await response.json();
-                    const resultResponse = await fetch('/download', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ filename })
-                    });
-                    if (resultResponse.ok) {
-                        const blob = await resultResponse.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = filename;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        a.remove();
-                    } else {
-                        alert('Error fetching result: ' + await resultResponse.text());
-                    }
-                } else {
-                    alert('Error: ' + await response.text());
-                }
-            } catch (error) {
-                alert('Error: ' + error);
+        // Fungsi untuk memeriksa ukuran file sebelum mengirimkan formulir
+        document.getElementById('encodeForm').onsubmit = function(e) {
+            const fileInput = document.getElementById('encodeFile');
+            const file = fileInput.files[0];
+            const maxSize = 10 * 1024 * 1024; // 10MB
+
+            if (file.size > maxSize) {
+                e.preventDefault(); // Hentikan pengiriman formulir
+                alert('Ukuran file tidak boleh lebih dari 10MB.');
             }
         };
 
-        document.getElementById('decodeForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const resultDiv = document.getElementById('result');
-            
-            try {
-                const response = await fetch('/decode', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    resultDiv.style.display = 'block';
-                    resultDiv.innerHTML = `
-                        <h3>Hasil Dekripsi:</h3>
-                        <p><strong>Cipher text:</strong> ${data.cipher_text}</p>
-                        <p><strong>Plain text:</strong> ${data.plain_text}</p>
-                    `;
-                } else {
-                    alert('Error: ' + await response.text());
-                }
-            } catch (error) {
-                alert('Error: ' + error);
+        // Event handler untuk form decode
+        document.getElementById('decodeForm').onsubmit = function(e) {
+            const fileInput = document.getElementById('decodeFile');
+            const file = fileInput.files[0];
+            const maxSize = 10 * 1024 * 1024; // 10MB
+
+            if (file.size > maxSize) {
+                e.preventDefault(); // Hentikan pengiriman formulir
+                alert('Ukuran file tidak boleh lebih dari 10MB.');
             }
         };
+
+        // Tambahkan event listener untuk mencegah refresh dengan F5 atau Ctrl+R
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+                e.preventDefault();
+            }
+        });
+
+        // Update script untuk menangani perubahan file
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function(e) {
+                const fileName = e.target.files[0]?.name;
+                const fileChosen = e.target.parentElement.querySelector('.file-chosen');
+                const fileLabel = e.target.parentElement.querySelector('.file-label');
+                
+                if (fileName) {
+                    fileChosen.textContent = fileName;
+                    fileLabel.textContent = `File yang dipilih:`;
+                    fileLabel.classList.add('file-selected');
+                } else {
+                    fileChosen.textContent = input.id === 'encodeFile' ? 
+                        'Belum ada File gambar yang dipilih' : 
+                        'Belum ada File gambar yang dipilih';
+                    fileLabel.textContent = input.id === 'encodeFile' ? 
+                        'Pilih File Gambar untuk di enkripsi' : 
+                        'Pilih File Gambar untuk di dekripsi';
+                    fileLabel.classList.remove('file-selected');
+                }
+            });
+        });
     </script>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html> 
