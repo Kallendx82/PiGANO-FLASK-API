@@ -61,10 +61,10 @@ def encrypt():
 @app.route('/decode', methods=['POST'])
 def decrypt():
     try:
-        if 'image' not in request.files:
+        if 'file' not in request.files:
             return jsonify({'error': 'No image file provided'}), 400
 
-        image = request.files['image']
+        image = request.files['file']
         
         if image.content_length > 10 * 1024 * 1024:  # 10MB
             return jsonify({'error': 'File size must not exceed 10MB'}), 400
